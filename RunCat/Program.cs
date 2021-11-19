@@ -47,6 +47,7 @@ namespace RunCat
         private string systemTheme = "";
         private string manualTheme = UserSettings.Default.Theme;
         private Icon[] icons;
+        private Icon[] fastIcons;
         private Timer animateTimer = new Timer();
         private Timer cpuTimer = new Timer();
 
@@ -69,6 +70,10 @@ namespace RunCat
                 new ToolStripMenuItem("Parrot", null, SetRunner)
                 {
                     Checked = runner.Equals("parrot")
+                },
+                new ToolStripMenuItem("FASTPARROT", null, SetRunner)
+                {
+                    Checked = runner.Equals("fastparrot")
                 }
             });
 
@@ -155,11 +160,21 @@ namespace RunCat
             ResourceManager rm = Resources.ResourceManager;
             int capacity = runner.Equals("cat") ? 5 : 10;
             List<Icon> list = new List<Icon>(capacity);
+            List<Icon> fastList = new List<Icon>(capacity);
             for (int i = 0; i < capacity; i++)
             {
                 list.Add((Icon)rm.GetObject($"{prefix}_{runner}_{i}"));
+                if (runner == "parrot")
+                {
+                    fastList.Add((Icon)rm.GetObject($"{prefix}_fast{runner}_{i}"));
+                }
+                else
+                {
+                    fastList.Add(list[i]);
+                }
             }
             icons = list.ToArray();
+            fastIcons = fastList.ToArray();
         }
 
         private void UpdateCheckedState(ToolStripMenuItem sender, ToolStripMenuItem menu)
@@ -245,10 +260,12 @@ namespace RunCat
             Application.Exit();
         }
 
+        float currentCPU;
         private void AnimationTick(object sender, EventArgs e)
         {
+            
             if (icons.Length <= current) current = 0;
-            notifyIcon.Icon = icons[current];
+            notifyIcon.Icon = currentCPU > 20 ? fastIcons[current] : icons[current];
             current = (current + 1) % icons.Length;
         }
 
@@ -262,7 +279,9 @@ namespace RunCat
         {
             float s = cpuUsage.NextValue();
             notifyIcon.Text = $"{s:f1}%";
+            currentCPU = s;
             s = 200.0f / (float)Math.Max(1.0f, Math.Min(20.0f, s / 5.0f));
+
             animateTimer.Stop();
             animateTimer.Interval = (int)s;
             animateTimer.Start();
